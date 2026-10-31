@@ -11,11 +11,33 @@ export async function POST(request:Request){try{
  if(action==='password'&&(typeof body.password!=='string'||body.password.length<12||body.password.length>128))return json({error:'Use uma senha com 12 a 128 caracteres.'},400);
  const supabase=await createSessionClient();
  if(action==='logout'){const {error}=await supabase.auth.signOut({scope:'local'});return error?json({error:'Não foi possível sair. Tente novamente.'},503):json({ok:true,redirect:'/entrar'});}
- if(action==='login'){
-  const {error}=await supabase.auth.signInWithPassword({email:body.email.trim(),password:body.password});
-  if(error)return json({error:error.status===429?'Muitas tentativas. Aguarde antes de tentar novamente.':'Não foi possível entrar. Confira o e-mail, a senha e a confirmação do cadastro.'},error.status===429?429:401);
-  return json({ok:true,redirect:'/'});
- }
+ if (action === 'login') {
+  const { error } = await supabase.auth.signInWithPassword({
+    email: body.email.trim(),
+    password: body.password,
+  });
+
+  if (error) {
+    console.error('[pulso login]', {
+      name: error.name,
+      code: error.code,
+      status: error.status,
+      message: error.message,
+    });
+
+    return json(
+      {
+        error:
+          error.status === 429
+            ? 'Muitas tentativas. Aguarde antes de tentar novamente.'
+            : 'Não foi possível entrar. Confira o e-mail, a senha e a confirmação do cadastro.',
+      },
+      error.status === 429 ? 429 : 401,
+    );
+  }
+
+  return json({ ok: true, redirect: '/' });
+}
  if(action==='signup'){
   const {error}=await supabase.auth.signUp({email:body.email.trim(),password:body.password,options:{emailRedirectTo:config.origin+'/auth/callback'}});
   if(error)return json({error:error.status===429?'Aguarde antes de solicitar outro e-mail.':'Não foi possível concluir o cadastro. Confira os dados ou tente recuperar a senha.'},error.status===429?429:400);
